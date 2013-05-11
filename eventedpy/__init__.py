@@ -5,7 +5,7 @@ import re
 
 class Event:
     def __init__(self, type="", *args, **kwargs):
-        self.type = data.get('type') or type
+        self.type = type
         self.args = args
         self.kwargs = kwargs
 
