@@ -103,10 +103,10 @@ class EventLoop(threading.Thread):
 
     def __timed_timeout(self, *args, __time=None, __function=None, **kwargs):
         time = datetime.datetime.utcnow()
-        if kwargs['__time'] < time:
-            kwargs['__function'](*args, **kwargs)
+        if __time < time:
+            __function(*args, **kwargs)
         else:
-            self.add(Event('__setTimeout', *args, **kwargs))
+            self.add(Event('__setTimeout', __time=__time, __function=__function, *args, **kwargs))
 
     def __timed_interval(self, *args, __time=None, __function=None, __delay=None, **kwargs):
         time = datetime.datetime.utcnow()
