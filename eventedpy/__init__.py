@@ -2,6 +2,9 @@ import threading
 import json
 from queue import Queue, Empty
 import re
+import time
+import datetime
+import uuid
 
 class Event:
     def __init__(self, type="", *args, **kwargs):
@@ -24,10 +27,14 @@ class EventLoop(threading.Thread):
     def __init__(self, maxsize=0, max_threads=32, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         self.listeners = {}
+        self.oneshots = {}
         self.queue = Queue()
         self.__max_threads = max_threads
         self.__threads = []
         self.processed_events = 0
+        
+        self.on('__setTimeout', self.__timed_event)
+        self.on('__setInterval', self.__timed_interval)
 
     def set_queue(self, maxsize=0):
         self.queue = Queue(maxsize)
@@ -90,3 +97,34 @@ class EventLoop(threading.Thread):
         self.__running = False
         self.__kill_joiner()
         threading.Thread.join(self, timeout)
+
+    def __timed_event(self, evt):
+        time = datetime.datetime.utcnow()
+        if evt.__time < time:
+            evt.__function(*evt.args, **evt.kwargs)
+        else:
+            self.add(evt)
+
+    def __timed_interval(self, evt):
+        time = datetime.datetime.utcnow()
+        if evt.__time < time:
+            evt.__function(*evt.args, **evt.kwargs)
+        else:
+            pass
+        evt.__time = time + datetime.timedelta(seconds=evt.__delay)
+        self.add(evt)
+
+    def setInterval(self, time, function, *args, **kwargs):
+        event = Event('__setInterval', *args, **kwargs)
+        time = time/1000#so that time can be specified in ms
+        event.__time = datetime.datetime.utcnow() + datetime.timedelta(seconds=time)
+        event.__delay = time
+        event.__function = function
+        self.add(event)
+
+    def setTimeout(self, time, function, *args, **kwargs):
+        event = Event('__setTimeout', *args, **kwargs)
+        time = time/1000#so that time can be specified in ms
+        event.__time = datetime.datetime.utcnow() + datetime.timedelta(seconds=time)
+        event.__function = function
+        self.add(event)
