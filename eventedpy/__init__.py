@@ -7,6 +7,7 @@ import datetime
 import uuid
 
 class Event:
+    """Basic Event, not needed, but useful to pass addition data in the events"""
     def __init__(self, type="", *args, **kwargs):
         self.type = type
         self.args = args
@@ -33,8 +34,9 @@ class EventLoop(threading.Thread):
         self.__threads = []
         self.processed_events = 0
         
-        self.on('__setTimeout', self.__timed_event)
+        self.on('__setTimeout', self.__timed_timeout)
         self.on('__setInterval', self.__timed_interval)
+        self.on('__setImmediate', self.__timed_immediate)
 
     def set_queue(self, maxsize=0):
         self.queue = Queue(maxsize)
@@ -53,7 +55,8 @@ class EventLoop(threading.Thread):
 
     def __kill_joiner(self):
         self.__joiner_running = False
-        self.__joiner_thread.join()
+        if self.__joiner_thread.is_alive():
+            self.__joiner_thread.join()
 
     def add(self, evt):
         self.queue.put(evt)
@@ -90,7 +93,7 @@ class EventLoop(threading.Thread):
                     for function in self.listeners[pattern]:
                         while len(self.__threads) >= self.__max_threads:
                             pass
-                        self.__threads.append(threading.Thread(target=function, args=(evt,)))
+                        self.__threads.append(threading.Thread(target=function, args=evt.args, kwargs=evt.kwargs))
                         self.__threads[-1].start()
 
     def join(self, timeout=None):
@@ -98,33 +101,46 @@ class EventLoop(threading.Thread):
         self.__kill_joiner()
         threading.Thread.join(self, timeout)
 
-    def __timed_event(self, evt):
+    def __timed_timeout(self, *args, __time=None, __function=None, **kwargs):
         time = datetime.datetime.utcnow()
-        if evt.__time < time:
-            evt.__function(*evt.args, **evt.kwargs)
+        if kwargs['__time'] < time:
+            kwargs['__function'](*args, **kwargs)
         else:
-            self.add(evt)
+            self.add(Event('__setTimeout', *args, **kwargs))
 
-    def __timed_interval(self, evt):
+    def __timed_interval(self, *args, __time=None, __function=None, __delay=None, **kwargs):
         time = datetime.datetime.utcnow()
-        if evt.__time < time:
-            evt.__function(*evt.args, **evt.kwargs)
+        if __time < time:
+            __function(*args, **kwargs)
         else:
             pass
-        evt.__time = time + datetime.timedelta(seconds=evt.__delay)
-        self.add(evt)
+        __time = time + datetime.timedelta(seconds=__delay)
+        self.add(Event(
+            '__setInterval',
+             __time=__time,
+             __function=__function,
+             __delay=__delay,
+             *args, **kwargs))
+
+    def __timed_immediate(self, *args, __function=None, **kwargs):
+        __function(*args, **kwargs)
 
     def setInterval(self, time, function, *args, **kwargs):
-        event = Event('__setInterval', *args, **kwargs)
         time = time/1000#so that time can be specified in ms
-        event.__time = datetime.datetime.utcnow() + datetime.timedelta(seconds=time)
-        event.__delay = time
-        event.__function = function
-        self.add(event)
+        self.add(Event(
+            '__setInterval',
+            __time=datetime.datetime.utcnow() + datetime.timedelta(seconds=time),
+            __delay = time,
+            __function=function
+            *args, **kwargs))
 
     def setTimeout(self, time, function, *args, **kwargs):
-        event = Event('__setTimeout', *args, **kwargs)
         time = time/1000#so that time can be specified in ms
-        event.__time = datetime.datetime.utcnow() + datetime.timedelta(seconds=time)
-        event.__function = function
-        self.add(event)
+        self.add(Event(
+            '__setTimeout',
+            __time=datetime.datetime.utcnow() + datetime.timedelta(seconds=time),
+            __function = function,
+            *args, **kwargs))
+
+    def setImmediate(self, function, *args, **kwargs):
+        self.add(Event('__setImmediate', __function=function, *args, **kwargs))
