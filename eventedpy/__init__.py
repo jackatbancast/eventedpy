@@ -117,10 +117,10 @@ class EventLoop(threading.Thread):
         __delay = kwargs['__delay']
         __function = kwargs['__function']
         __time = kwargs['__time']
+        del kwargs['__function']
+        del kwargs['__time']
+        del kwargs['__delay']
         if __time < time:
-            del kwargs['__function']
-            del kwargs['__time']
-            del kwargs['__delay']
             __function(*args, **kwargs)
         else:
             pass

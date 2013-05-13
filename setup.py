@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='eventedpy',
-    version='0.1.4',
+    version='0.1.4-1',
     description='Simple, tight event loop',
     author='Jack Stephenson <jackatbancast>',
     author_email='jack@bancast.net',
