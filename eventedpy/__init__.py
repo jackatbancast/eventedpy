@@ -101,16 +101,26 @@ class EventLoop(threading.Thread):
         self.__kill_joiner()
         threading.Thread.join(self, timeout)
 
-    def __timed_timeout(self, *args, __time=None, __function=None, **kwargs):
+    def __timed_timeout(self, *args, **kwargs):
         time = datetime.datetime.utcnow()
+        __function = kwargs['__function']
+        __time = kwargs['__time']
         if __time < time:
+            del kwargs['__function']
+            del kwargs['__time']
             __function(*args, **kwargs)
         else:
             self.add(Event('__setTimeout', __time=__time, __function=__function, *args, **kwargs))
 
-    def __timed_interval(self, *args, __time=None, __function=None, __delay=None, **kwargs):
+    def __timed_interval(self, *args, **kwargs):
         time = datetime.datetime.utcnow()
+        __delay = kwargs['__delay']
+        __function = kwargs['__function']
+        __time = kwargs['__time']
         if __time < time:
+            del kwargs['__function']
+            del kwargs['__time']
+            del kwargs['__delay']
             __function(*args, **kwargs)
         else:
             pass
@@ -122,8 +132,8 @@ class EventLoop(threading.Thread):
              __delay=__delay,
              *args, **kwargs))
 
-    def __timed_immediate(self, *args, __function=None, **kwargs):
-        __function(*args, **kwargs)
+    def __timed_immediate(self, *args, **kwargs):
+        kwargs['__function'](*args, **kwargs)
 
     def setInterval(self, time, function, *args, **kwargs):
         time = time/1000#so that time can be specified in ms

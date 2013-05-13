@@ -20,10 +20,6 @@ EventedPy is very simple to use
     #will print both the event object and `Hello World`
     loop.add(e.Event("message", message="Hello World"))
 
-    #will only print the event object
-    loop.add("basic event")
-
-
 Creator
 -------
 
