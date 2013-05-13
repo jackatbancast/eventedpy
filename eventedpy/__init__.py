@@ -105,9 +105,9 @@ class EventLoop(threading.Thread):
         time = datetime.datetime.utcnow()
         __function = kwargs['__function']
         __time = kwargs['__time']
+        del kwargs['__function']
+        del kwargs['__time']
         if __time < time:
-            del kwargs['__function']
-            del kwargs['__time']
             __function(*args, **kwargs)
         else:
             self.add(Event('__setTimeout', __time=__time, __function=__function, *args, **kwargs))
