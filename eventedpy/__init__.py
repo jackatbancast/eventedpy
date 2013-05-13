@@ -122,15 +122,15 @@ class EventLoop(threading.Thread):
         del kwargs['__delay']
         if __time < time:
             __function(*args, **kwargs)
+            __time = time + datetime.timedelta(seconds=__delay)
         else:
             pass
-        __time = time + datetime.timedelta(seconds=__delay)
         self.add(Event(
             '__setInterval',
-             __time=__time,
-             __function=__function,
-             __delay=__delay,
-             *args, **kwargs))
+            __time=__time,
+            __function=__function,
+            __delay=__delay,
+            *args, **kwargs))
 
     def __timed_immediate(self, *args, **kwargs):
         __function = kwargs['__function']
@@ -143,7 +143,7 @@ class EventLoop(threading.Thread):
             '__setInterval',
             __time=datetime.datetime.utcnow() + datetime.timedelta(seconds=time),
             __delay = time,
-            __function=function
+            __function=function,
             *args, **kwargs))
 
     def setTimeout(self, time, function, *args, **kwargs):
