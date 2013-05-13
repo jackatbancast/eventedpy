@@ -133,7 +133,9 @@ class EventLoop(threading.Thread):
              *args, **kwargs))
 
     def __timed_immediate(self, *args, **kwargs):
-        kwargs['__function'](*args, **kwargs)
+        __function = kwargs['__function']
+        del kwargs['__function']
+        __function(*args, **kwargs)
 
     def setInterval(self, time, function, *args, **kwargs):
         time = time/1000#so that time can be specified in ms
