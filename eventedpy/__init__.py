@@ -15,17 +15,8 @@ class Event:
 
 class EventLoop(threading.Thread):
     """A simple event loop that spawns :max_threads: number of threads
-    to handle events
-    
-    Example Usage:
-        loop = eventedpy.EventLoop()
-        loop.start()
-        loop.on("message", print)
-
-        loop.add(eventedpy.Event('message now', message='hello world')))
-        #Would print `<Event>`
-    """
-    def __init__(self, maxsize=0, max_threads=32, *args, **kwargs):
+    to handle events"""
+    def __init__(self, max_threads=32, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         self.listeners = {}
         self.oneshots = {}
@@ -34,9 +25,9 @@ class EventLoop(threading.Thread):
         self.__threads = []
         self.processed_events = 0
         
-        self.on('__setTimeout', self.__timed_timeout)
-        self.on('__setInterval', self.__timed_interval)
-        self.on('__setImmediate', self.__timed_immediate)
+        self.on('\_\_setTimeout$', self.__timed_timeout)
+        self.on('\_\_setInterval$', self.__timed_interval)
+        self.on('\_\_setImmediate$', self.__timed_immediate)
 
     def set_queue(self, maxsize=0):
         self.queue = Queue(maxsize)
@@ -61,15 +52,12 @@ class EventLoop(threading.Thread):
     def add(self, evt):
         self.queue.put(evt)
 
-    def event(self, t='', *args, **kwargs):
-        self.add(Event(t, *args, **kwargs)) 
+    def event(self, __type='', *args, **kwargs):
+        self.add(Event(__type, *args, **kwargs)) 
 
     def on(self, pattern, function):
         evt = re.compile(pattern)
-        if not evt in self.listeners.keys():
-            self.listeners[evt] = []
-        if not function in self.listeners[evt]:
-            self.listeners[evt].append(function)
+        self.listeners[evt] = function
 
     @property
     def threads(self):
@@ -91,14 +79,13 @@ class EventLoop(threading.Thread):
                 evt_type = evt.type
             except AttributeError:
                 evt_type = str(evt)
-            for pattern in self.listeners.keys():
-                if pattern.match(evt_type):
-                    for function in self.listeners[pattern]:
-                        if self.__max_threads:
-                            while len(self.__threads) >= self.__max_threads:
-                                pass
-                        self.__threads.append(threading.Thread(target=function, args=evt.args, kwargs=evt.kwargs))
-                        self.__threads[-1].start()
+            funcs = [self.listeners[x] for x in self.listeners.keys() if x.match(evt_type)]
+            for function in funcs:
+                if self.__max_threads > 0:
+                    while len(self.__threads) >= self.__max_threads:
+                        pass
+                self.__threads.append(threading.Thread(target=function, args=evt.args, kwargs=evt.kwargs))
+                self.__threads[-1].start()
 
     def join(self, timeout=None):
         self.__running = False
@@ -114,7 +101,7 @@ class EventLoop(threading.Thread):
         if __time < time:
             __function(*args, **kwargs)
         else:
-            self.add(Event('__setTimeout', __time=__time, __function=__function, *args, **kwargs))
+            self.event('__setTimeout', __time=__time, __function=__function, *args, **kwargs)
 
     def __timed_interval(self, *args, **kwargs):
         time = datetime.datetime.utcnow()
@@ -129,12 +116,12 @@ class EventLoop(threading.Thread):
             __time = time + datetime.timedelta(seconds=__delay)
         else:
             pass
-        self.add(Event(
+        self.event(
             '__setInterval',
             __time=__time,
             __function=__function,
             __delay=__delay,
-            *args, **kwargs))
+            *args, **kwargs)
 
     def __timed_immediate(self, *args, **kwargs):
         __function = kwargs['__function']
@@ -143,20 +130,20 @@ class EventLoop(threading.Thread):
 
     def setInterval(self, time, function, *args, **kwargs):
         time = time/1000#so that time can be specified in ms
-        self.add(Event(
+        self.event(
             '__setInterval',
             __time=datetime.datetime.utcnow() + datetime.timedelta(seconds=time),
             __delay = time,
             __function=function,
-            *args, **kwargs))
+            *args, **kwargs)
 
     def setTimeout(self, time, function, *args, **kwargs):
         time = time/1000#so that time can be specified in ms
-        self.add(Event(
+        self.event(
             '__setTimeout',
             __time=datetime.datetime.utcnow() + datetime.timedelta(seconds=time),
             __function = function,
-            *args, **kwargs))
+            *args, **kwargs)
 
     def setImmediate(self, function, *args, **kwargs):
-        self.add(Event('__setImmediate', __function=function, *args, **kwargs))
+        self.event('__setImmediate', __function=function, *args, **kwargs)
