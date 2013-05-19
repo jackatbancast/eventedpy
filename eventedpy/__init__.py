@@ -61,6 +61,9 @@ class EventLoop(threading.Thread):
     def add(self, evt):
         self.queue.put(evt)
 
+    def event(self, t='', *args, **kwargs):
+        self.add(Event(t, *args, **kwargs)) 
+
     def on(self, pattern, function):
         evt = re.compile(pattern)
         if not evt in self.listeners.keys():
@@ -91,8 +94,9 @@ class EventLoop(threading.Thread):
             for pattern in self.listeners.keys():
                 if pattern.match(evt_type):
                     for function in self.listeners[pattern]:
-                        while len(self.__threads) >= self.__max_threads:
-                            pass
+                        if self.__max_threads:
+                            while len(self.__threads) >= self.__max_threads:
+                                pass
                         self.__threads.append(threading.Thread(target=function, args=evt.args, kwargs=evt.kwargs))
                         self.__threads[-1].start()
 
