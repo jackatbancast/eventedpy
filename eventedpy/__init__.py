@@ -1,6 +1,9 @@
 import threading
 import json
-from queue import Queue, Empty
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
 import re
 import time
 import datetime
