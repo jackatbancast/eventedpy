@@ -7,18 +7,36 @@ Usage
 EventedPy is very simple to use
 
     import eventedpy as e
+    from sys import version_info
+
+    if version_info < (3,0):
+    	from __future__ import print_function
 
     loop = e.EventLoop()
     loop.start()
 
-    def echo_message(evt):
-        print(evt.kwargs.get('message'))
-
     loop.on('.+', print) # Will print every event
-    loop.on('message', print_message) # Will print every message event
+    loop.on('message', echo_message) # Will print every message event
 
-    #will print both the event object and `Hello World`
-    loop.add(e.Event("message", message="Hello World"))
+    loop.event("message", "a", "b") # prints "a b" twice
+
+It is also possible to add some slightly more advanced possibility to event handlers
+You can use *args and **kwargs to transport addition variables
+The example below is a continuation of the above
+
+	def print_object(*args, **kwargs):
+		print(
+			str(args),
+			str(kwargs)
+		)
+
+	loop.on("object", print_object)
+
+	loop.event("object", 1, 2, third = 3)
+	# Will print [1, 2] {"third": 3} in one thread
+	# The other thread will raise an Exception as the keyword "third"
+	# is not an accepted keyword argument for the print function
+
 
 Creator
 -------
@@ -30,7 +48,7 @@ License
 
 The MIT License (MIT)
 
-Copyright (c) <year> <copyright holders>
+Copyright (c) 2012-2013 Jack Stephenson (@jackatbancast)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
